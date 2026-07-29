@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "issuebrief"
+dynamic = ["version"]
+description = "Turn a failing command into a shareable, redacted GitHub issue report."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "huangwentao1108-arch" },
+]
+keywords = [
+  "bug-report",
+  "cli",
+  "github-issues",
+  "redaction",
+  "reproducibility",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Bug Tracking",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/huangwentao1108-arch/issuebrief"
+Documentation = "https://github.com/huangwentao1108-arch/issuebrief#readme"
+Issues = "https://github.com/huangwentao1108-arch/issuebrief/issues"
+Source = "https://github.com/huangwentao1108-arch/issuebrief"
+
+[project.scripts]
+issuebrief = "issuebrief.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "build==1.5.0",
+  "detect-secrets==1.5.0",
+  "ruff==0.16.0",
+  "twine==7.0.0",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.dynamic]
+version = { attr = "issuebrief.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+issuebrief = ["py.typed"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
