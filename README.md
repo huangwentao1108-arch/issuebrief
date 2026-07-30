@@ -14,11 +14,7 @@ Create a shareable GitHub Issue Markdown report from a command's output—locall
 ## In 30 seconds
 
 ```console
-# After the v0.1.1 release workflow has successfully published to PyPI:
 python -m pip install "issuebrief==0.1.1"
-
-# Before PyPI publication succeeds, install the versioned source tag instead:
-python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.1"
 issuebrief run --output issue.md -- python -m your_package --diagnose
 ```
 
@@ -97,9 +93,8 @@ This is deliberately a small, deterministic first-pass safety tool—not a secur
 - Python 3.10 or newer
 - No runtime network access or third-party runtime dependency
 
-The `v0.1.1` release workflow is configured for PyPI Trusted Publishing. Do not
-assume `issuebrief==0.1.1` is available on PyPI until that workflow has completed
-successfully; until then, use the versioned source tag shown above.
+`issuebrief==0.1.1` is published on PyPI through GitHub Actions OIDC Trusted
+Publishing. The project does not use a long-lived PyPI API token.
 
 Run the standard-library test suite from a checkout:
 

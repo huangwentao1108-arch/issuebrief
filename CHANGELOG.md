@@ -2,13 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.1.1] - 2026-07-29
+## [0.1.1] - 2026-07-30
 
 ### Changed
 
 - Prepared the package metadata and documentation for the 0.1.1 release.
-- Release tags now use PyPI Trusted Publishing through GitHub Actions OIDC; the
-  package is not available from PyPI until that workflow has completed successfully.
+- Published the package through GitHub Actions OIDC Trusted Publishing without a
+  long-lived PyPI API token.
 
 ## [0.1.0] - 2026-07-29
 
