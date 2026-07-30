@@ -17,7 +17,7 @@ class CliTests(unittest.TestCase):
             main(["--version"])
 
         self.assertEqual(0, raised.exception.code)
-        self.assertEqual("issuebrief 0.1.0\n", stdout.getvalue())
+        self.assertEqual("issuebrief 0.1.1\n", stdout.getvalue())
 
     def test_run_requires_an_explicit_command_separator(self):
         with (

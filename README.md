@@ -1,5 +1,10 @@
 # issuebrief
 
+[![CI](https://github.com/huangwentao1108-arch/issuebrief/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/huangwentao1108-arch/issuebrief/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/issuebrief.svg)](https://pypi.org/project/issuebrief/)
+[![Python](https://img.shields.io/pypi/pyversions/issuebrief.svg)](https://pypi.org/project/issuebrief/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Create a shareable GitHub Issue Markdown report from a command's output—locally, with best-effort redaction.
 
 **Before sharing, review every generated report yourself.** Redaction is heuristic and cannot guarantee that every secret, personal detail, or sensitive path has been removed.
@@ -9,7 +14,11 @@ Create a shareable GitHub Issue Markdown report from a command's output—locall
 ## In 30 seconds
 
 ```console
-python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.0"
+# After the v0.1.1 release workflow has successfully published to PyPI:
+python -m pip install "issuebrief==0.1.1"
+
+# Before PyPI publication succeeds, install the versioned source tag instead:
+python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.1"
 issuebrief run --output issue.md -- python -m your_package --diagnose
 ```
 
@@ -40,6 +49,26 @@ issuebrief run --no-system-info -- your-command
 
 The report contains the command, status, exit code, duration, sanitized working directory, optional system information, sanitized stdout/stderr, and replacement counts.
 
+### What the report looks like
+
+```markdown
+# Issue Brief
+
+## Result
+
+- Status: completed
+- Exit code: 2
+- Duration: 0.055s
+
+## Standard Error
+
+    configuration invalid
+
+## Redaction
+
+- HOME_PATH: 1
+```
+
 ### Sanitize existing text
 
 ```console
@@ -68,8 +97,9 @@ This is deliberately a small, deterministic first-pass safety tool—not a secur
 - Python 3.10 or newer
 - No runtime network access or third-party runtime dependency
 
-The project is installable directly from its versioned release tag today. Publishing
-the same package on PyPI is planned after its trusted-publishing setup is complete.
+The `v0.1.1` release workflow is configured for PyPI Trusted Publishing. Do not
+assume `issuebrief==0.1.1` is available on PyPI until that workflow has completed
+successfully; until then, use the versioned source tag shown above.
 
 Run the standard-library test suite from a checkout:
 

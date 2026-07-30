@@ -1,5 +1,10 @@
 # issuebrief
 
+[![CI](https://github.com/huangwentao1108-arch/issuebrief/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/huangwentao1108-arch/issuebrief/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/issuebrief.svg)](https://pypi.org/project/issuebrief/)
+[![Python](https://img.shields.io/pypi/pyversions/issuebrief.svg)](https://pypi.org/project/issuebrief/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 将命令输出生成可用于 GitHub Issue 的 Markdown 报告，并在本地进行尽力而为的脱敏。
 
 **分享前必须由人工逐字复核生成的报告。** 脱敏基于规则，不能保证删除所有密钥、个人信息或敏感路径。
@@ -9,7 +14,11 @@
 ## 30 秒上手
 
 ```console
-python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.0"
+# v0.1.1 发布工作流成功发布到 PyPI 后：
+python -m pip install "issuebrief==0.1.1"
+
+# PyPI 发布成功前，请从对应版本标签安装：
+python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.1"
 issuebrief run --output issue.md -- python -m your_package --diagnose
 ```
 
@@ -40,6 +49,26 @@ issuebrief run --no-system-info -- your-command
 
 报告包含命令、状态、退出码、耗时、脱敏后的工作目录、可选系统信息、脱敏后的 stdout/stderr 及替换计数。
 
+### 报告示例
+
+```markdown
+# Issue Brief
+
+## Result
+
+- Status: completed
+- Exit code: 2
+- Duration: 0.055s
+
+## Standard Error
+
+    configuration invalid
+
+## Redaction
+
+- HOME_PATH: 1
+```
+
 ### 脱敏已有文本
 
 ```console
@@ -68,8 +97,8 @@ some-command 2>&1 | issuebrief sanitize
 - Python 3.10 或更高版本
 - 无运行时联网、无第三方运行时依赖
 
-目前可以直接从版本化发布标签安装。完成 PyPI 的可信发布配置后，
-还会将同一软件包发布到 PyPI。
+`v0.1.1` 的发布工作流已配置 PyPI 可信发布。该工作流成功完成前，
+不能假定 `issuebrief==0.1.1` 已在 PyPI 可用；此前请使用上方的版本化源码标签。
 
 在源码目录运行标准库测试：
 
