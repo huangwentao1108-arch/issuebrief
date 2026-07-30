@@ -14,11 +14,7 @@
 ## 30 秒上手
 
 ```console
-# v0.1.1 发布工作流成功发布到 PyPI 后：
 python -m pip install "issuebrief==0.1.1"
-
-# PyPI 发布成功前，请从对应版本标签安装：
-python -m pip install "git+https://github.com/huangwentao1108-arch/issuebrief.git@v0.1.1"
 issuebrief run --output issue.md -- python -m your_package --diagnose
 ```
 
@@ -97,8 +93,8 @@ some-command 2>&1 | issuebrief sanitize
 - Python 3.10 或更高版本
 - 无运行时联网、无第三方运行时依赖
 
-`v0.1.1` 的发布工作流已配置 PyPI 可信发布。该工作流成功完成前，
-不能假定 `issuebrief==0.1.1` 已在 PyPI 可用；此前请使用上方的版本化源码标签。
+`issuebrief==0.1.1` 已通过 GitHub Actions OIDC 可信发布到 PyPI。
+项目不使用长期有效的 PyPI API 令牌。
 
 在源码目录运行标准库测试：
 
