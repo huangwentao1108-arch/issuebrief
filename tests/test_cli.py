@@ -17,7 +17,7 @@ class CliTests(unittest.TestCase):
             main(["--version"])
 
         self.assertEqual(0, raised.exception.code)
-        self.assertEqual("issuebrief 0.1.1\n", stdout.getvalue())
+        self.assertEqual("issuebrief 0.2.0\n", stdout.getvalue())
 
     def test_run_requires_an_explicit_command_separator(self):
         with (
@@ -27,6 +27,14 @@ class CliTests(unittest.TestCase):
             main(["run", sys.executable, "--version"])
 
         self.assertEqual(2, raised.exception.code)
+
+    def test_run_help_does_not_require_a_command_separator(self):
+        stdout = io.StringIO()
+        with self.assertRaises(SystemExit) as raised, patch("sys.stdout", stdout):
+            main(["run", "--help"])
+
+        self.assertEqual(0, raised.exception.code)
+        self.assertIn("--max-output-bytes", stdout.getvalue())
 
     def test_run_writes_default_and_custom_reports_and_redacts_command_output(self):
         fake_token = "ghp_" + "abcdefghijklmno12345"
@@ -148,6 +156,77 @@ class CliTests(unittest.TestCase):
         self.assertNotIn(fake_email, file_output.getvalue())
         self.assertIn("[REDACTED:EMAIL]", file_output.getvalue())
         self.assertIn("[REDACTED:CREDENTIAL_VALUE]", stdin_output.getvalue())
+
+    def test_sanitize_supports_custom_patterns_and_pattern_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pattern_file = Path(directory) / "patterns.txt"
+            pattern_file.write_text(
+                "# project-specific identifiers\ncustomer-[0-9]+\n",
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            with (
+                patch(
+                    "sys.stdin",
+                    io.StringIO("tenant-42 customer-123 ordinary-value"),
+                ),
+                patch("sys.stdout", stdout),
+            ):
+                exit_code = main(
+                    [
+                        "sanitize",
+                        "--redact-pattern",
+                        r"tenant-[0-9]+",
+                        "--redact-file",
+                        str(pattern_file),
+                        "-",
+                    ]
+                )
+
+        self.assertEqual(0, exit_code)
+        self.assertEqual(
+            "[REDACTED:EXTRA_PATTERN] [REDACTED:EXTRA_PATTERN] ordinary-value",
+            stdout.getvalue(),
+        )
+
+    def test_run_controls_cwd_stdin_and_output_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "stdin.txt"
+            source.write_text("from-input-file", encoding="utf-8")
+            output = root / "report.md"
+            exit_code = main(
+                [
+                    "run",
+                    "--output",
+                    str(output),
+                    "--cwd",
+                    str(root),
+                    "--stdin",
+                    str(source),
+                    "--max-output-bytes",
+                    "32",
+                    "--no-system-info",
+                    "--",
+                    sys.executable,
+                    "-c",
+                    "import os,sys; print(sys.stdin.read()); print('x' * 100)",
+                ]
+            )
+            report = output.read_text(encoding="utf-8")
+
+        self.assertEqual(0, exit_code)
+        self.assertIn("from-input-file", report)
+        self.assertIn("Standard output: truncated", report)
+
+    def test_invalid_custom_pattern_is_a_cli_error(self):
+        with (
+            self.assertRaises(SystemExit) as raised,
+            patch("sys.stderr", io.StringIO()),
+        ):
+            main(["sanitize", "--redact-pattern", "(", "-"])
+
+        self.assertEqual(2, raised.exception.code)
 
 
 @contextlib.contextmanager
