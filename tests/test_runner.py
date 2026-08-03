@@ -1,4 +1,6 @@
+import io
 import subprocess
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +10,8 @@ from issuebrief.runner import _terminate_process_tree, run_command
 class RunCommandTests(unittest.TestCase):
     def test_runs_without_a_shell_and_collects_output(self):
         process = MagicMock()
-        process.communicate.return_value = ("out", "err")
+        process.stdout = io.BytesIO(b"out")
+        process.stderr = io.BytesIO(b"err")
         process.returncode = 3
         with patch("issuebrief.runner.subprocess.Popen", return_value=process) as popen:
             result = run_command(["tool", "arg"], timeout=2)
@@ -19,18 +22,19 @@ class RunCommandTests(unittest.TestCase):
         self.assertEqual("err", result.stderr)
         self.assertFalse(result.timed_out)
         self.assertFalse(popen.call_args.kwargs["shell"])
-        self.assertEqual(2, process.communicate.call_args.kwargs["timeout"])
+        self.assertEqual(2, process.wait.call_args.kwargs["timeout"])
+        self.assertEqual(subprocess.DEVNULL, popen.call_args.kwargs["stdin"])
         self.assertTrue(
             popen.call_args.kwargs.get("start_new_session", False)
             or "creationflags" in popen.call_args.kwargs
         )
 
     def test_timeout_normalizes_byte_streams(self):
-        error = subprocess.TimeoutExpired(
-            ["tool"], 0.1, output=b"partial out", stderr=b"partial err"
-        )
+        error = subprocess.TimeoutExpired(["tool"], 0.1)
         process = MagicMock()
-        process.communicate.side_effect = [error, (b"partial out", b"partial err")]
+        process.stdout = io.BytesIO(b"partial out")
+        process.stderr = io.BytesIO(b"partial err")
+        process.wait.side_effect = [error, None]
         with (
             patch("issuebrief.runner.subprocess.Popen", return_value=process),
             patch("issuebrief.runner._terminate_process_tree") as terminate,
@@ -59,6 +63,20 @@ class RunCommandTests(unittest.TestCase):
             run_command([])
         with self.assertRaises(ValueError):
             run_command(["tool"], timeout=0)
+        with self.assertRaises(ValueError):
+            run_command(["tool"], max_output_bytes=0)
+
+    def test_large_output_is_drained_but_only_the_limit_is_retained(self):
+        result = run_command(
+            [sys.executable, "-c", "import sys; sys.stdout.write('x' * 10000)"],
+            max_output_bytes=128,
+        )
+
+        self.assertEqual(0, result.exit_code)
+        self.assertEqual("x" * 128, result.stdout)
+        self.assertTrue(result.stdout_truncated)
+        self.assertEqual(10000, result.stdout_bytes)
+        self.assertFalse(result.stderr_truncated)
 
     def test_unix_timeout_terminates_the_process_group(self):
         process = MagicMock(pid=42)

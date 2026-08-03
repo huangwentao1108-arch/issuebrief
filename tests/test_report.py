@@ -39,6 +39,31 @@ class ReportTests(unittest.TestCase):
         self.assertIn("- No replacements made.", report)
         self.assertTrue(report.endswith("\n"))
 
+    def test_truncated_streams_are_marked_in_the_report(self):
+        result = RunResult(
+            ("tool",),
+            "partial stdout",
+            "partial stderr",
+            0,
+            0.01,
+            stdout_truncated=True,
+            stderr_truncated=True,
+            stdout_bytes=5000,
+            stderr_bytes=6000,
+            output_limit_bytes=1024,
+        )
+
+        report = render_report(result, stdout=result.stdout, stderr=result.stderr)
+
+        self.assertIn(
+            "Standard output: truncated at 1024-byte capture limit (5000 bytes produced)",
+            report,
+        )
+        self.assertIn(
+            "Standard error: truncated at 1024-byte capture limit (6000 bytes produced)",
+            report,
+        )
+
     def test_display_command_returns_a_single_safe_display_string(self):
         shown = display_command(("tool", "argument with spaces", "plain"))
         self.assertIsInstance(shown, str)

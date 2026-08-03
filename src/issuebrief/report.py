@@ -44,6 +44,16 @@ def render_report(
         + (str(result.exit_code) if result.exit_code is not None else "N/A")
     )
     lines.append(f"- Duration: {result.duration_seconds:.3f}s")
+    if result.stdout_truncated:
+        lines.append(
+            "- Standard output: truncated"
+            + _truncation_details(result.output_limit_bytes, result.stdout_bytes)
+        )
+    if result.stderr_truncated:
+        lines.append(
+            "- Standard error: truncated"
+            + _truncation_details(result.output_limit_bytes, result.stderr_bytes)
+        )
     if result.cwd:
         lines.extend(["- Working directory:", ""])
         lines.extend(_fenced_text(cwd_text if cwd_text is not None else result.cwd))
@@ -75,6 +85,12 @@ def render_report(
 
 def _text_section(title: str, value: str) -> list[str]:
     return [f"## {title}", "", *_fenced_text(value), ""]
+
+
+def _truncation_details(limit: int, produced: int) -> str:
+    if limit > 0:
+        return f" at {limit}-byte capture limit ({produced} bytes produced)"
+    return f" ({produced} bytes produced)"
 
 
 def _fenced_text(value: str) -> list[str]:

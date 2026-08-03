@@ -118,3 +118,41 @@ class RedactionTests(unittest.TestCase):
         self.assertEqual(2, first.counts["BEARER_TOKEN"])
         self.assertEqual(first.text, second.text)
         self.assertEqual({}, second.counts)
+
+    def test_redacts_sensitive_headers_and_ipv6_but_keeps_loopback(self):
+        source = "\n".join(
+            (
+                "Authorization: Basic dXNlcjpwYXNz",
+                "X-Api-Key: synthetic-header-secret",
+                "Cookie: session=synthetic-cookie; theme=dark",
+                "Set-Cookie: session=synthetic-cookie; HttpOnly",
+                "remote=2001:db8::dead:beef loopback=::1",
+            )
+        )
+
+        result = redact_text(source)
+
+        for sensitive in (
+            "dXNlcjpwYXNz",
+            "synthetic-header-secret",
+            "synthetic-cookie",
+            "2001:db8::dead:beef",
+        ):
+            self.assertNotIn(sensitive, result.text)
+        self.assertIn("Authorization: Basic [REDACTED:BASIC_AUTH]", result.text)
+        self.assertIn("Cookie: [REDACTED:COOKIE_HEADER]", result.text)
+        self.assertIn("loopback=::1", result.text)
+        self.assertEqual(2, result.counts["COOKIE_HEADER"])
+        self.assertEqual(1, result.counts["IPV6"])
+
+    def test_sensitive_header_redaction_preserves_crlf(self):
+        source = (
+            "Cookie: session=synthetic-cookie\r\n"
+            "Authorization: Basic dXNlcjpwYXNz\r\n"
+            "ordinary line\r\n"
+        )
+
+        result = redact_text(source)
+
+        self.assertEqual(3, result.text.count("\r\n"))
+        self.assertIn("ordinary line\r\n", result.text)

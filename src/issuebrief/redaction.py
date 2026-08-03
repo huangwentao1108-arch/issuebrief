@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from ipaddress import IPv6Address
 from pathlib import Path
 
 
@@ -27,6 +28,24 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "URL_CREDENTIALS",
         re.compile(r"\b([a-z][a-z0-9+.-]*://)[^\s/@:]+:[^\s/@]+@", re.IGNORECASE),
+    ),
+    (
+        "COOKIE_HEADER",
+        re.compile(
+            r"^([ \t]*(?:Cookie|Set-Cookie)[ \t]*:[ \t]*)[^\r\n]+",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+    ),
+    (
+        "BASIC_AUTH",
+        re.compile(
+            r"(\bAuthorization[ \t]*:[ \t]*Basic[ \t]+)[A-Za-z0-9+/=]+",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "API_KEY_HEADER",
+        re.compile(r"(\bX-Api-Key[ \t]*:[ \t]*)[^\s,;]+", re.IGNORECASE),
     ),
     (
         "GITHUB_TOKEN",
@@ -94,6 +113,10 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
+_IPV6_CANDIDATE = re.compile(
+    r"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4}(?![0-9A-Fa-f:])"
+)
+
 
 def _mask(kind: str) -> str:
     return f"[REDACTED:{kind}]"
@@ -109,6 +132,8 @@ def _replace_pattern(
         counts[kind] = counts.get(kind, 0) + 1
         if kind == "URL_CREDENTIALS":
             return match.group(1) + _mask(kind) + "@"
+        if kind in {"COOKIE_HEADER", "BASIC_AUTH", "API_KEY_HEADER"}:
+            return match.group(1) + _mask(kind)
         if kind == "BEARER_TOKEN":
             quote = match.group("quote") or ""
             return match.group("prefix") + quote + _mask(kind) + quote
@@ -136,6 +161,7 @@ def redact_text(
     redacted = text
     for kind, pattern in _PATTERNS:
         redacted = _replace_pattern(redacted, pattern, kind, counts)
+    redacted = _replace_ipv6(redacted, counts)
 
     home_path = str(Path.home() if home is None else home)
     if home_path:
@@ -159,3 +185,18 @@ def redact_text(
         )
 
     return RedactionResult(text=redacted, counts=counts)
+
+
+def _replace_ipv6(text: str, counts: dict[str, int]) -> str:
+    def replacement(match: re.Match[str]) -> str:
+        candidate = match.group(0)
+        try:
+            address = IPv6Address(candidate)
+        except ValueError:
+            return candidate
+        if address.is_loopback:
+            return candidate
+        counts["IPV6"] = counts.get("IPV6", 0) + 1
+        return _mask("IPV6")
+
+    return _IPV6_CANDIDATE.sub(replacement, text)

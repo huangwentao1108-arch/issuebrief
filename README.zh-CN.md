@@ -14,7 +14,7 @@
 ## 30 秒上手
 
 ```console
-python -m pip install "issuebrief==0.1.1"
+python -m pip install issuebrief
 issuebrief run --output issue.md -- python -m your_package --diagnose
 ```
 
@@ -27,10 +27,10 @@ issuebrief run --output issue.md -- python -m your_package --diagnose
 ### 运行并生成报告
 
 ```console
-issuebrief run [--output PATH] [--timeout SECONDS] [--no-system-info] -- COMMAND...
+issuebrief run [选项] -- COMMAND...
 ```
 
-命令不会经由 shell 执行。标准输出、标准错误、展示的命令行及当前用户的主目录路径会先经过内置脱敏器，再写入 Markdown。
+命令不会经由 shell 执行。标准输出、标准错误、展示的命令行及当前用户的主目录路径会先经过内置脱敏器，再写入 Markdown。默认禁止子进程读取标准输入，避免意外出现的交互提示导致命令一直卡住。
 
 ```console
 # 默认输出 issue-report.md
@@ -39,11 +39,19 @@ issuebrief run -- python -m pip --version
 # 10 秒后停止子进程
 issuebrief run --timeout 10 --output diagnostics.md -- your-command --flag
 
+# 在指定目录运行，并显式提供标准输入
+issuebrief run --cwd ./reproduction --stdin input.txt -- your-command
+
+# 每路输出最多保留 256 KiB
+issuebrief run --max-output-bytes 262144 -- noisy-command
+
 # 不写入操作系统与 Python 版本
 issuebrief run --no-system-info -- your-command
 ```
 
-报告包含命令、状态、退出码、耗时、脱敏后的工作目录、可选系统信息、脱敏后的 stdout/stderr 及替换计数。
+每路输出默认最多保留 1 MiB。达到限制后仍会持续读取进程输出，但不会继续保存在内存中。报告会明确标记被截断的输出，并记录进程实际产生的字节数。
+
+报告包含命令、状态、退出码、耗时、脱敏后的工作目录、可选系统信息、脱敏后的 stdout/stderr、截断信息及替换计数。
 
 ### 报告示例
 
@@ -68,7 +76,7 @@ issuebrief run --no-system-info -- your-command
 ### 脱敏已有文本
 
 ```console
-issuebrief sanitize [FILE|-]
+issuebrief sanitize [选项] [FILE|-]
 ```
 
 省略参数（或使用 `-`）时，从标准输入读取并输出脱敏文本：
@@ -78,13 +86,24 @@ issuebrief sanitize app.log > app-sanitized.log
 some-command 2>&1 | issuebrief sanitize
 ```
 
+### 项目自定义脱敏
+
+`run` 和 `sanitize` 都支持重复指定自定义规则：
+
+```console
+issuebrief sanitize --redact-pattern 'customer-[0-9]+' app.log
+issuebrief run --redact-file .issuebrief-redact -- your-command
+```
+
+脱敏规则文件使用 UTF-8 编码，每行一个正则表达式；空行和以 `#` 开头的行会被忽略。正则无效时，程序会在执行命令或输出内容前直接停止。
+
 ## 退出码
 
 `run` 在命令正常结束时返回子进程的退出码；超时返回 `124`；命令无法启动返回 `127`。参数、读取和写入错误会显示 CLI 错误并以非零码退出。`sanitize` 成功输出时返回 `0`。
 
 ## 脱敏范围与限制
 
-内置规则尝试识别常见凭据（GitHub 风格 token、Bearer 凭据、私钥块、常见 API key 赋值、带密码的 URL）、邮箱、主目录路径和非回环 IPv4 地址。替换内容会清晰显示，例如 `[REDACTED:GITHUB_TOKEN]`。
+内置规则尝试识别常见凭据（GitHub 风格 token、Bearer/Basic 认证、Cookie/API key 请求头、私钥块、常见 API key 赋值、带密码的 URL）、邮箱、主目录路径和非回环 IPv4/IPv6 地址。替换内容会清晰显示，例如 `[REDACTED:GITHUB_TOKEN]`。
 
 这是小而确定的第一道检查，不是安全边界，也不是完整的密钥扫描器。自定义格式、编码值、可识别个人或公司的上下文，以及新型凭据都可能残留。不要为了制作报告而执行不受信任的命令；未经人工复核，绝不要公开报告。
 
@@ -93,8 +112,8 @@ some-command 2>&1 | issuebrief sanitize
 - Python 3.10 或更高版本
 - 无运行时联网、无第三方运行时依赖
 
-`issuebrief==0.1.1` 已通过 GitHub Actions OIDC 可信发布到 PyPI。
-项目不使用长期有效的 PyPI API 令牌。
+版本通过 GitHub Actions OIDC 可信发布到 PyPI，项目不使用长期有效的
+PyPI API 令牌。
 
 在源码目录运行标准库测试：
 
